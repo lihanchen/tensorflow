@@ -35,7 +35,10 @@ arm64-v8a armeabi armeabi-v7a armeabi-v7a-hard mips mips64 x86 x86_64)"
 }
 
 SCRIPT_DIR=$(dirname $0)
-ARCHITECTURE=armeabi-v7a
+if [[ -z "${ARCHITECTURE}" ]]
+then
+  ARCHITECTURE=armeabi-v7a
+fi
 
 # debug options
 while getopts "a:c" opt_name; do

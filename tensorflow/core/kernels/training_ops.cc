@@ -481,9 +481,12 @@ DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
+#ifndef NVIDIA_TEGRA
 REGISTER_KERNELS(GPU, Eigen::half);
-REGISTER_KERNELS(GPU, float);
 REGISTER_KERNELS(GPU, double);
+#endif
+REGISTER_KERNELS(GPU, float);
+
 #endif
 
 #ifdef TENSORFLOW_USE_SYCL
@@ -635,9 +638,12 @@ DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
+#ifndef NVIDIA_TEGRA
 REGISTER_KERNELS(GPU, Eigen::half);
-REGISTER_KERNELS(GPU, float);
 REGISTER_KERNELS(GPU, double);
+#endif
+REGISTER_KERNELS(GPU, float);
+
 #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
@@ -1090,9 +1096,12 @@ DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
+#ifndef NVIDIA_TEGRA
 REGISTER_KERNELS(GPU, Eigen::half);
-REGISTER_KERNELS(GPU, float);
 REGISTER_KERNELS(GPU, double);
+#endif
+REGISTER_KERNELS(GPU, float);
+
 #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
@@ -2319,9 +2328,12 @@ DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
+#ifndef NVIDIA_TEGRA
 REGISTER_KERNELS(GPU, Eigen::half);
-REGISTER_KERNELS(GPU, float);
 REGISTER_KERNELS(GPU, double);
+#endif
+REGISTER_KERNELS(GPU, float);
+
 #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
@@ -2697,9 +2709,12 @@ DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
+#ifndef NVIDIA_TEGRA
 REGISTER_KERNELS(GPU, Eigen::half);
-REGISTER_KERNELS(GPU, float);
 REGISTER_KERNELS(GPU, double);
+#endif
+REGISTER_KERNELS(GPU, float);
+
 #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
@@ -2936,9 +2951,12 @@ DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
+#ifndef NVIDIA_TEGRA
 REGISTER_KERNELS(GPU, Eigen::half);
-REGISTER_KERNELS(GPU, float);
 REGISTER_KERNELS(GPU, double);
+#endif
+REGISTER_KERNELS(GPU, float);
+
 #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
