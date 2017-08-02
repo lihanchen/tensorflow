@@ -25,7 +25,7 @@ usage() {
   echo "-T only build tensorflow"
   echo "-x [hexagon library path] copy and hexagon libraries in the specified path"
   exit 1
-}
+} 
 
 if [[ -z "${NDK_ROOT}" ]]; then
     echo "NDK_ROOT should be set as an environment variable" 1>&2
@@ -50,6 +50,7 @@ cd "${SCRIPT_DIR}"/../../../
 
 source "${SCRIPT_DIR}/build_helper.subr"
 JOB_COUNT="${JOB_COUNT:-$(get_job_count)}"
+#JOB_COUNT="1"
 
 HEXAGON_DOWNLOAD_PATH="tensorflow/contrib/makefile/downloads/hexagon"
 

@@ -189,9 +189,9 @@ DECLARE_GPU_SPEC(float);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNEL_BUILDER(
-    Name("AvgPool").Device(DEVICE_GPU).TypeConstraint<Eigen::half>("T"),
-    AvgPoolingOp<GPUDevice, Eigen::half>);
+//REGISTER_KERNEL_BUILDER(
+    //Name("AvgPool").Device(DEVICE_GPU).TypeConstraint<Eigen::half>("T"),
+    //AvgPoolingOp<GPUDevice, Eigen::half>);
 REGISTER_KERNEL_BUILDER(
     Name("AvgPool").Device(DEVICE_GPU).TypeConstraint<float>("T"),
     AvgPoolingOp<GPUDevice, float>);
@@ -424,12 +424,12 @@ REGISTER_KERNEL_BUILDER(Name("AvgPoolGrad")
                             .HostMemory("orig_input_shape")
                             .Label("cudnn"),
                         AvgPoolingGradOp<GPUDevice, float>);
-REGISTER_KERNEL_BUILDER(Name("AvgPoolGrad")
-                            .Device(DEVICE_GPU)
-                            .TypeConstraint<Eigen::half>("T")
-                            .HostMemory("orig_input_shape")
-                            .Label("cudnn"),
-                        AvgPoolingGradOp<GPUDevice, Eigen::half>);
+//REGISTER_KERNEL_BUILDER(Name("AvgPoolGrad")
+                            //.Device(DEVICE_GPU)
+                            //.TypeConstraint<Eigen::half>("T")
+                            //.HostMemory("orig_input_shape")
+                            //.Label("cudnn"),
+                        //AvgPoolingGradOp<GPUDevice, Eigen::half>);
 
 // A custom GPU kernel based AvgPoolingGrad implementation. It includes the
 // padding as the candidates for the pooling operation.
@@ -548,11 +548,11 @@ REGISTER_KERNEL_BUILDER(Name("AvgPoolGrad")
                             .TypeConstraint<float>("T")
                             .HostMemory("orig_input_shape"),
                         AvgPoolingGradOpCustomGPUKernel<float>);
-REGISTER_KERNEL_BUILDER(Name("AvgPoolGrad")
-                            .Device(DEVICE_GPU)
-                            .TypeConstraint<Eigen::half>("T")
-                            .HostMemory("orig_input_shape"),
-                        AvgPoolingGradOpCustomGPUKernel<Eigen::half>);
+//REGISTER_KERNEL_BUILDER(Name("AvgPoolGrad")
+                            //.Device(DEVICE_GPU)
+                            //.TypeConstraint<Eigen::half>("T")
+                            //.HostMemory("orig_input_shape"),
+                        //AvgPoolingGradOpCustomGPUKernel<Eigen::half>);
 
 #endif  // GOOGLE_CUDA
 

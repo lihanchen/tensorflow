@@ -65,6 +65,7 @@ public class TensorFlowInferenceInterface {
         System.loadLibrary("tensorflow_inference");
         Log.i(TAG, "Successfully loaded TensorFlow native methods (RunStats error may be ignored)");
       } catch (UnsatisfiedLinkError e2) {
+        e2.printStackTrace();
         throw new RuntimeException(
             "Native TF methods not found; check that the correct native"
                 + " libraries are present in the APK.");

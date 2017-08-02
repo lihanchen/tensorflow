@@ -48,12 +48,16 @@ INFERENCE_OBJS := $(addprefix $(OBJDIR), $(INFERENCE_SRCS:.cc=.o))
 INFERENCE_SO_NAME := libtensorflow_inference.so
 INFERENCE_SO_PATH := $(LIBDIR)$(INFERENCE_SO_NAME)
 
-$(INFERENCE_SO_PATH): $(LIB_OBJS) $(INFERENCE_OBJS)
+
+$(INFERENCE_SO_PATH): $(LIB_OBJS) $(INFERENCE_OBJS) $(LIBDIR)libtfcuda.a
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) \
 	-o $@ $(INFERENCE_OBJS) $(LIB_OBJS) \
-	$(LIBFLAGS) $(LDFLAGS) -shared $(LIBS)
-
+	$(LIBFLAGS) $(LDFLAGS) -shared -ltfcuda $(LIBS) \
+	-L$(HOME)/JetPack_Android_3.0/cuda-8.0/targets/aarch64-linux-androideabi/lib \
+	-L$(HOME)/JetPack_Android_3.0/cuda-8.0/targets/aarch64-linux-androideabi/lib/stubs \
+	-L$(HOME)/JetPack_Android_3.0/cuDNN/aarch64/cuda/lib64 \
+	-L$(LIBDIR)
 $(INFERENCE_SO_NAME): $(INFERENCE_SO_PATH)
 
 
@@ -61,32 +65,32 @@ $(INFERENCE_SO_NAME): $(INFERENCE_SO_PATH)
 # This library provides the additional native support necessary to run the
 # Android TensorFlow demo. This includes image colorspace conversion and object
 # tracking code. It does not provide any TensorFlow functionality itself.
-DEMO_SRCS := \
-tensorflow/examples/android/jni/imageutils_jni.cc \
-tensorflow/examples/android/jni/object_tracking/frame_pair.cc \
-tensorflow/examples/android/jni/object_tracking/image_neon.cc \
-tensorflow/examples/android/jni/object_tracking/keypoint_detector.cc \
-tensorflow/examples/android/jni/object_tracking/logging.cc \
-tensorflow/examples/android/jni/object_tracking/object_detector.cc \
-tensorflow/examples/android/jni/object_tracking/object_tracker.cc \
-tensorflow/examples/android/jni/object_tracking/object_tracker_jni.cc \
-tensorflow/examples/android/jni/object_tracking/optical_flow.cc \
-tensorflow/examples/android/jni/object_tracking/time_log.cc \
-tensorflow/examples/android/jni/object_tracking/tracked_object.cc \
-tensorflow/examples/android/jni/object_tracking/utils_neon.cc \
-tensorflow/examples/android/jni/rgb2yuv.cc \
-tensorflow/examples/android/jni/yuv2rgb.cc
+# DEMO_SRCS := \
+# tensorflow/examples/android/jni/imageutils_jni.cc \
+# tensorflow/examples/android/jni/object_tracking/frame_pair.cc \
+# tensorflow/examples/android/jni/object_tracking/image_neon.cc \
+# tensorflow/examples/android/jni/object_tracking/keypoint_detector.cc \
+# tensorflow/examples/android/jni/object_tracking/logging.cc \
+# tensorflow/examples/android/jni/object_tracking/object_detector.cc \
+# tensorflow/examples/android/jni/object_tracking/object_tracker.cc \
+# tensorflow/examples/android/jni/object_tracking/object_tracker_jni.cc \
+# tensorflow/examples/android/jni/object_tracking/optical_flow.cc \
+# tensorflow/examples/android/jni/object_tracking/time_log.cc \
+# tensorflow/examples/android/jni/object_tracking/tracked_object.cc \
+# tensorflow/examples/android/jni/object_tracking/utils_neon.cc \
+# tensorflow/examples/android/jni/rgb2yuv.cc \
+# tensorflow/examples/android/jni/yuv2rgb.cc
 
-DEMO_OBJS := $(addprefix $(OBJDIR), $(DEMO_SRCS:.cc=.o))
+# DEMO_OBJS := $(addprefix $(OBJDIR), $(DEMO_SRCS:.cc=.o))
 
-DEMO_SO_NAME := libtensorflow_demo.so
-DEMO_SO_PATH := $(LIBDIR)$(DEMO_SO_NAME)
+# DEMO_SO_NAME := libtensorflow_demo.so
+# DEMO_SO_PATH := $(LIBDIR)$(DEMO_SO_NAME)
 
-CXXFLAGS += -DSTANDALONE_DEMO_LIB
-$(DEMO_SO_PATH): $(DEMO_OBJS)
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) \
-	-o $@ $(DEMO_OBJS) \
-	$(LIBFLAGS) $(LDFLAGS) -shared $(LIBS)
+# CXXFLAGS += -DSTANDALONE_DEMO_LIB
+# $(DEMO_SO_PATH): $(DEMO_OBJS)
+# 	@mkdir -p $(dir $@)
+# 	$(CXX) $(CXXFLAGS) \
+# 	-o $@ $(DEMO_OBJS) \
+# 	$(LIBFLAGS) $(LDFLAGS) -shared $(LIBS)
 
-$(DEMO_SO_NAME): $(DEMO_SO_PATH)
+# $(DEMO_SO_NAME): $(DEMO_SO_PATH)
