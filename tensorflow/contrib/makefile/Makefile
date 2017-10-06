@@ -34,10 +34,12 @@ ifdef HEXAGON_LIBS
       $(error "hexagon libs not found at " $(HEXAGON_INCLUDE))
 		endif
 	else
-    $(error "HEXAGON_INCLUDE is not set.")
+	$(error "HEXAGON_INCLUDE is not set.")
 	endif
 	ifneq ($(TARGET),ANDROID)
-    $(error "hexagon is only supported on Android")
+		ifneq ($(TARGET),TEGRA)
+			$(error "hexagon is only supported on Android")
+		endif
 	endif
 endif # HEXAGON_LIBS
 
@@ -128,7 +130,6 @@ TARGET := $(HOST_OS)
 # Where compiled objects are stored.
 GENDIR := $(MAKEFILE_DIR)/gen/
 OBJDIR := $(GENDIR)obj/
-CUDAOBJDIR := $(GENDIR)cudaobj/
 LIBDIR := $(GENDIR)lib/
 BINDIR := $(GENDIR)bin/
 PBTGENDIR := $(GENDIR)proto_text/
@@ -141,11 +142,12 @@ CXX := $(CC_PREFIX) gcc
 OPTFLAGS := -O2
 
 ifneq ($(TARGET),ANDROID)
-  OPTFLAGS += -march=native
+  ifneq ($(TARGET),TEGRA)
+    OPTFLAGS += -march=native
+  endif
 endif
 
 CXXFLAGS := --std=c++11 -DIS_SLIM_BUILD -fno-exceptions -DNDEBUG $(OPTFLAGS)
-CXXFLAGS4NVCC := -DIS_SLIM_BUILD -fno-exceptions -DNDEBUG $(OPTFLAGS)
 LDFLAGS := \
 -L/usr/local/lib
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
@@ -204,7 +206,7 @@ ifeq ($(TARGET),LINUX)
 endif
 # If we're cross-compiling for the Raspberry Pi, use the right gcc.
 ifeq ($(TARGET),PI)
-	CXXFLAGS += -D__ANDROID_TYPES_SLIM__ -DRASPBERRY_PI
+	CXXFLAGS += -D__ANDROID_TYPES_SLIM__
 	LDFLAGS := -Wl,--no-whole-archive
 	LIBS += -ldl -lpthread
 	LIBFLAGS += -Wl,--allow-multiple-definition -Wl,--whole-archive
@@ -234,11 +236,83 @@ ifeq ($(TARGET),ANDROID)
 	ifndef NDK_ROOT
     $(error "NDK_ROOT is not defined.")
 	endif
-	CROSSGPP := $(NDK_ROOT)/toolchains/aarch64-linux-android-4.9/prebuilt/$(OS_PATH)-x86_64/bin/aarch64-linux-android-g++
-	CXX := $(CC_PREFIX) $(CROSSGPP)
+	CXX := $(CC_PREFIX) $(NDK_ROOT)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(OS_PATH)-x86_64/bin/arm-linux-androideabi-g++
+	CXXFLAGS +=\
+--sysroot $(NDK_ROOT)/platforms/android-21/arch-arm \
+-Wno-narrowing \
+-march=armv7-a \
+-mfloat-abi=softfp \
+-mfpu=neon \
+-fPIE
+
+	INCLUDES = \
+-I$(NDK_ROOT)/sources/android/support/include \
+-I$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/4.9/include \
+-I$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi/include \
+-I. \
+-I$(MAKEFILE_DIR)/downloads/ \
+-I$(MAKEFILE_DIR)/downloads/eigen \
+-I$(MAKEFILE_DIR)/downloads/gemmlowp \
+-I$(MAKEFILE_DIR)/gen/protobuf/include \
+-I$(PROTOGENDIR) \
+-I$(PBTGENDIR)
+
+	LIBS := \
+-lgnustl_static \
+-lprotobuf \
+-llog \
+-lz \
+-lm
+
+	LD := $(NDK_ROOT)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(OS_PATH)-x86_64/arm-linux-androideabi/bin/ld
+
+	LDFLAGS := \
+-march=armv7-a \
+-L$(MAKEFILE_DIR)/gen/protobuf/lib \
+-L$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a \
+-fPIE \
+-pie \
+-v
+
+	AR := $(NDK_ROOT)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(OS_PATH)-x86_64/bin/arm-linux-androideabi-ar
+	ARFLAGS := r
+	LIBFLAGS += -Wl,--allow-multiple-definition -Wl,--whole-archive
+
+	ifdef HEXAGON_LIBS
+		INCLUDES += -I$(HEXAGON_INCLUDE)
+		LIBS += -lhexagon_controller
+		LDFLAGS += -L$(HEXAGON_LIBS)
+		CXXFLAGS += -DUSE_HEXAGON_LIBS
+	endif
+
+	ifdef ENABLE_EXPERIMENTAL_HEXNN_OPS
+		CXXFLAGS += -DENABLE_EXPERIMENTAL_HEXNN_OPS
+	endif
+
+endif  # ANDROID
+# LINT.ThenChange(//tensorflow/contrib/android/cmake/CMakeLists.txt)
+
+ifeq ($(TARGET),TEGRA)
+	OS_PATH :=
+	ifeq ($(HOST_OS),LINUX)
+		OS_PATH=linux
+	endif
+	ifeq ($(HOST_OS),OSX)
+		OS_PATH=darwin
+	endif
+	ifeq ($(HOST_OS),WINDOWS)
+    $(error "windows is not supported.")
+	endif
+
+	ifndef NDK_ROOT
+    $(error "NDK_ROOT is not defined.")
+	endif
+	CXX := $(NDK_ROOT)/toolchains/aarch64-linux-android-4.9/prebuilt/$(OS_PATH)-x86_64/bin/aarch64-linux-android-g++
+	CXXFLAGS4NVCC := -DIS_SLIM_BUILD -DNVIDIA_TEGRA -fno-exceptions -DNDEBUG $(OPTFLAGS)
 	NVCC := $(HOME)/JetPack_Android_3.0/cuda-8.0/bin/nvcc
-	NVCCFLAGS := -x=cu -D__CUDACC__ -DNVCC -ccbin $(CROSSGPP) --std c++11 --expt-relaxed-constexpr -m64 -gencode arch=compute_53,code=sm_53 -gencode arch=compute_62,code=sm_62 -DEIGEN_AVOID_STL_ARRAY -DTENSORFLOW_USE_EIGEN_THREADPOOL -DLANG_CXX11 -DEIGEN_HAS_C99_MATH -DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=5.3
-	#-gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_53,code=sm_53 -gencode arch=compute_62,code=sm_62
+	NVCCFLAGS := -x=cu -D__CUDACC__ -DNVCC -DNVIDIA_TEGRA -ccbin $(CXX) --std c++11 --expt-relaxed-constexpr -m64 -gencode arch=compute_53,code=sm_53 -gencode arch=compute_62,code=sm_62 -DEIGEN_AVOID_STL_ARRAY -DTENSORFLOW_USE_EIGEN_THREADPOOL -DLANG_CXX11 -DEIGEN_HAS_C99_MATH -DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=5.3
+	CXX := $(CC_PREFIX) $(CXX)
+
 	CXXFLAGS4NVCC +=\
 -march=armv8-a \
 -fPIE \
@@ -246,6 +320,7 @@ ifeq ($(TARGET),ANDROID)
 
 	CXXFLAGS +=\
 -DGOOGLE_CUDA=1 \
+-DNVIDIA_TEGRA \
 -DEIGEN_AVOID_STL_ARRAY \
 -DEIGEN_HAS_C99_MATH \
 -DLANG_CXX11 -DTENSORFLOW_USE_EIGEN_THREADPOOL -DTF_EXTRA_CUDA_CAPABILITIES=5.3 \
@@ -257,7 +332,7 @@ ifeq ($(TARGET),ANDROID)
 -Itensorflow/core/kernels \
 -I$(HOME)/JetPack_Android_3.0/cuda-8.0/include \
 -I$(HOME)/JetPack_Android_3.0 \
--I$(HOME)/JetPack_Android_3.0/cuDNN/armv7 \
+-I$(HOME)/JetPack_Android_3.0/cuDNN/aarch64 \
 -I$(HOME)/JetPack_Android_3.0/cuda-8.0/extras/CUPTI/include \
 -I$(NDK_ROOT)/sources/android/support/include \
 -I$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/4.9/include \
@@ -273,6 +348,7 @@ ifeq ($(TARGET),ANDROID)
 -Ibazel-genfiles
 
 	LIBS := \
+-ltfcuda \
 -lgnustl_static \
 -lprotobuf \
 -llog \
@@ -297,12 +373,9 @@ ifeq ($(TARGET),ANDROID)
 -fPIE \
 -pie \
 -v
-#-fPIC \
-#-fPIE
-#-pie \
-	AR := $(NDK_ROOT)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(OS_PATH)-x86_64/bin/arm-linux-androideabi-ar
+
+	AR := $(NDK_ROOT)/toolchains/aarch64-linux-android-4.9/prebuilt/$(OS_PATH)-x86_64/bin/aarch64-linux-android-ar
 	ARFLAGS := r
-	# LIBFLAGS += -Wl,--allow-multiple-definition -Wl,--whole-archive
 	LIBFLAGS += -Wl,--allow-multiple-definition -Wl,--whole-archive
 
 	ifdef HEXAGON_LIBS
@@ -310,24 +383,20 @@ ifeq ($(TARGET),ANDROID)
 		LIBS += -lhexagon_controller
 		LDFLAGS += -L$(HEXAGON_LIBS)
 		CXXFLAGS += -DUSE_HEXAGON_LIBS
-
-# CAVEAT: We should disable TENSORFLOW_DISABLE_META while running
-# quantized_matmul on Android because it crashes in
-# MultiThreadGemm in tensorflow/core/kernels/meta_support.cc
-# See http://b/33270149
-# TODO(satok): Remove once it's fixed
-		CXXFLAGS += -DTENSORFLOW_DISABLE_META
-
-# Declare __ANDROID_TYPES_FULL__ to enable required types for hvx
-		CXXFLAGS += -D__ANDROID_TYPES_FULL__
 	endif
 
 	ifdef ENABLE_EXPERIMENTAL_HEXNN_OPS
 		CXXFLAGS += -DENABLE_EXPERIMENTAL_HEXNN_OPS
 	endif
 
-endif  # ANDROID
-# LINT.ThenChange(//tensorflow/contrib/android/cmake/CMakeLists.txt)
+	TEGRA_LIBS := \
+-L$(HOME)/JetPack_Android_3.0/cuda-8.0/targets/aarch64-linux-androideabi/lib \
+-L$(HOME)/JetPack_Android_3.0/cuda-8.0/targets/aarch64-linux-androideabi/lib/stubs \
+-L$(HOME)/JetPack_Android_3.0/cuDNN/aarch64/cuda/lib64 \
+-L$(LIBDIR)
+
+	CUDA_LIB_DEPS := $(LIBDIR)libtfcuda.a
+endif  # TEGRA
 
 # Settings for iOS.
 ifeq ($(TARGET),IOS)
@@ -475,9 +544,61 @@ BENCHMARK_NAME := $(BINDIR)benchmark
 
 # What sources we want to compile, derived from the main Bazel build using the
 # gen_file_lists.sh script.
-CUDA_SRCS := \
-$(wildcard tensorflow/core/kernels/*.cu.cc) 
 
+CORE_CC_ALL_SRCS := \
+$(wildcard tensorflow/core/*.cc) \
+$(wildcard tensorflow/core/common_runtime/*.cc) \
+$(wildcard tensorflow/core/framework/*.cc) \
+$(wildcard tensorflow/core/graph/*.cc) \
+$(wildcard tensorflow/core/grappler/*.cc) \
+$(wildcard tensorflow/core/grappler/*/*.cc) \
+$(wildcard tensorflow/core/lib/*/*.cc) \
+$(wildcard tensorflow/core/platform/*.cc) \
+$(wildcard tensorflow/core/platform/*/*.cc) \
+$(wildcard tensorflow/core/platform/*/*/*.cc) \
+$(wildcard tensorflow/core/util/*.cc) \
+$(wildcard tensorflow/core/util/*/*.cc) \
+tensorflow/core/util/version_info.cc
+# Remove duplicates (for version_info.cc)
+CORE_CC_ALL_SRCS := $(sort $(CORE_CC_ALL_SRCS))
+CORE_CC_EXCLUDE_SRCS := \
+$(wildcard tensorflow/core/*/*test.cc) \
+$(wildcard tensorflow/core/*/*testutil*) \
+$(wildcard tensorflow/core/*/*testlib*) \
+$(wildcard tensorflow/core/*/*main.cc) \
+$(wildcard tensorflow/core/*/*/*test.cc) \
+$(wildcard tensorflow/core/*/*/*testutil*) \
+$(wildcard tensorflow/core/*/*/*testlib*) \
+$(wildcard tensorflow/core/*/*/*main.cc) \
+$(wildcard tensorflow/core/debug/*.cc) \
+$(wildcard tensorflow/core/framework/op_gen_lib.cc) \
+$(wildcard tensorflow/core/graph/dot.*) \
+$(wildcard tensorflow/core/lib/gif/*) \
+$(wildcard tensorflow/core/lib/io/zlib*) \
+$(wildcard tensorflow/core/lib/io/record*) \
+$(wildcard tensorflow/core/lib/jpeg/*) \
+$(wildcard tensorflow/core/lib/png/*) \
+$(wildcard tensorflow/core/util/events_writer.*) \
+$(wildcard tensorflow/core/util/reporter.*) \
+$(wildcard tensorflow/core/platform/default/cuda_libdevice_path.*) \
+$(wildcard tensorflow/core/platform/default/stream_executor.*) \
+$(wildcard tensorflow/core/platform/default/test_benchmark.*) \
+$(wildcard tensorflow/core/platform/cuda.h) \
+$(wildcard tensorflow/core/platform/cuda_libdevice_path.*) \
+$(wildcard tensorflow/core/platform/cloud/*) \
+$(wildcard tensorflow/core/platform/google/*) \
+$(wildcard tensorflow/core/platform/google/*/*) \
+$(wildcard tensorflow/core/platform/jpeg.*) \
+$(wildcard tensorflow/core/platform/png.*) \
+$(wildcard tensorflow/core/platform/stream_executor.*) \
+$(wildcard tensorflow/core/platform/windows/*) \
+$(wildcard tensorflow/core/user_ops/*.cu.cc) \
+$(wildcard tensorflow/core/common_runtime/gpu/*) \
+$(wildcard tensorflow/core/common_runtime/gpu_device_factory.*) \
+$(wildcard tensorflow/core/grappler/inputs/trivial_test_graph_input_yielder.*) \
+$(wildcard tensorflow/core/grappler/clusters/single_machine.*)
+
+ifeq ($(TARGET),TEGRA)
 CORE_CC_ALL_SRCS := \
 $(wildcard tensorflow/core/*.cc) \
 $(wildcard tensorflow/core/common_runtime/*.cc) \
@@ -499,7 +620,14 @@ $(wildcard tensorflow/core/grappler/clusters/*.cc) \
 $(wildcard tensorflow/core/grappler/utils/*.cc) \
 $(wildcard tensorflow/core/lib/core/*.cc) \
 $(wildcard tensorflow/core/lib/*/*.cc) \
-tensorflow/core/grappler/inputs/utils.cc 
+tensorflow/core/kernels/pooling_ops_3d.cc \
+tensorflow/core/kernels/cudnn_pooling_gpu.cc \
+tensorflow/core/kernels/fractional_avg_pool_op.cc \
+tensorflow/core/kernels/fractional_pool_common.cc \
+tensorflow/core/kernels/fractional_max_pool_op.cc \
+tensorflow/core/kernels/sparse_fill_empty_rows_op.cc \
+tensorflow/core/kernels/concat_lib_gpu.cc \
+tensorflow/core/grappler/inputs/utils.cc
 
 CORE_CC_EXCLUDE_SRCS := \
 $(wildcard tensorflow/core/*/*test.cc) \
@@ -520,11 +648,15 @@ $(wildcard tensorflow/cc/training/*test.cc) \
 tensorflow/core/util/cuda_kernel_helper_test.cu.cc \
 tensorflow/core/lib/io/record_reader.cc
 
+CUDA_CC_SRCS := $(wildcard tensorflow/core/kernels/*.cu.cc)
+CUDA_CC_OBJS := $(addprefix $(OBJDIR), $(CUDA_CC_SRCS:.cc=.o))
+endif  # TEGRA
+
 # Filter out all the excluded files.
 TF_CC_SRCS := $(filter-out $(CORE_CC_EXCLUDE_SRCS), $(CORE_CC_ALL_SRCS))
-
 # Add in any extra files that don't fit the patterns easily
 TF_CC_SRCS += tensorflow/core/common_runtime/gpu/gpu_tracer.cc
+
 # Also include the op and kernel definitions.
 TF_CC_SRCS += $(shell cat $(MAKEFILE_DIR)/tf_op_files.txt)
 PBT_CC_SRCS := $(shell cat $(MAKEFILE_DIR)/tf_pb_text_files.txt)
@@ -536,12 +668,11 @@ tensorflow/tools/benchmark/benchmark_model_main.cc
 
 # File names of the intermediate files target compilation generates.
 TF_CC_OBJS := $(addprefix $(OBJDIR), $(TF_CC_SRCS:.cc=.o))
-TF_CORE_GPU_KERNELS_OBJS := $(addprefix $(OBJDIR), $(CUDA_SRCS:.cu.cc=.cu.o))
 PBT_GEN_FILES := $(addprefix $(PBTGENDIR), $(PBT_CC_SRCS))
 PBT_OBJS := $(addprefix $(OBJDIR), $(PBT_CC_SRCS:.cc=.o))
 PROTO_CC_SRCS := $(addprefix $(PROTOGENDIR), $(PROTO_SRCS:.proto=.pb.cc))
 PROTO_OBJS := $(addprefix $(OBJDIR), $(PROTO_SRCS:.proto=.pb.o))
-LIB_OBJS := $(PROTO_OBJS) $(TF_CC_OBJS) $(PBT_OBJS) $(TF_CUDA_OBJS)
+LIB_OBJS := $(PROTO_OBJS) $(TF_CC_OBJS) $(PBT_OBJS)
 BENCHMARK_OBJS := $(addprefix $(OBJDIR), $(BENCHMARK_SRCS:.cc=.o))
 
 .PHONY: clean cleantarget
@@ -550,6 +681,7 @@ BENCHMARK_OBJS := $(addprefix $(OBJDIR), $(BENCHMARK_SRCS:.cc=.o))
 all: $(LIB_PATH) $(BENCHMARK_NAME)
 
 # Rules for target compilation.
+
 
 .phony_version_info:
 tensorflow/core/util/version_info.cc: .phony_version_info
@@ -560,27 +692,22 @@ $(LIB_PATH): $(LIB_OBJS)
 	@mkdir -p $(dir $@)
 	$(AR) $(ARFLAGS) $(LIB_PATH) $(LIB_OBJS)
 
-# Gathers together all the objects we've compiled into a single '.a' archive.
-$(LIBDIR)libtfcuda.a: $(TF_CORE_GPU_KERNELS_OBJS)
-	@mkdir -p $(dir $@)
-	$(AR) $(ARFLAGS) $@ $(TF_CORE_GPU_KERNELS_OBJS)
-
-
-$(BENCHMARK_NAME): $(BENCHMARK_OBJS) $(LIB_PATH) $(LIBDIR)libtfcuda.a
+$(BENCHMARK_NAME): $(BENCHMARK_OBJS) $(LIB_PATH) $(CUDA_LIB_DEPS)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) \
-	-o $(BENCHMARK_NAME) $(BENCHMARK_OBJS) \
-	$(LIBFLAGS) $(LIB_PATH) $(LDFLAGS) -ltfcuda $(LIBS) \
-	-L$(HOME)/JetPack_Android_3.0/cuda-8.0/targets/aarch64-linux-androideabi/lib \
-	-L$(HOME)/JetPack_Android_3.0/cuda-8.0/targets/aarch64-linux-androideabi/lib/stubs \
-	-L$(HOME)/JetPack_Android_3.0/cuDNN/aarch64/cuda/lib64 \
-	-L$(LIBDIR)
+	-o $(BENCHMARK_NAME) $(BENCHMARK_OBJS)\
+	$(LIBFLAGS) $(TEGRA_LIBS) $(LIB_PATH) $(LDFLAGS) $(LIBS)
 
+ifeq ($(TARGET),TEGRA)
 $(OBJDIR)%.cu.o: %.cu.cc
 	@mkdir -p $(dir $@)
 	@mkdir -p $(dir $(DEPDIR)$*)
 	$(NVCC) $(NVCCFLAGS) -Xcompiler "$(CXXFLAGS4NVCC) $(DEPFLAGS)" $(INCLUDES) -c $< -o $@
-	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+$(LIBDIR)libtfcuda.a: $(CUDA_CC_OBJS)
+	@mkdir -p $(dir $@)
+	$(AR) $(ARFLAGS) $@ $(CUDA_CC_OBJS)
+endif
 
 # Matches on the normal hand-written TensorFlow C++ source files.
 $(OBJDIR)%.o: %.cc | $(PBT_GEN_FILES)

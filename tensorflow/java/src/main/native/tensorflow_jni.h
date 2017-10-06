@@ -30,6 +30,7 @@ extern "C" {
 JNIEXPORT jstring JNICALL Java_org_tensorflow_TensorFlow_version(JNIEnv*,
                                                                  jclass);
 
+#ifdef NVIDIA_TEGRA
 #define RUN_STATS_METHOD(name) \
   JNICALL Java_org_tensorflow_contrib_android_RunStats_##name
 
@@ -42,8 +43,7 @@ JNIEXPORT void RUN_STATS_METHOD(delete)(JNIEnv*, jclass, jlong);
 JNIEXPORT void RUN_STATS_METHOD(add)(JNIEnv*, jclass, jlong, jbyteArray );
 
 JNIEXPORT jstring RUN_STATS_METHOD(summary)(JNIEnv*, jclass, jlong);
-
-
+#endif
 
 /*
  * Class:     org_tensorflow_TensorFlow

@@ -172,7 +172,11 @@ Allocator* ProcessState::GetCPUAllocator(int numa_node) {
       // TODO(reedwm): evaluate whether 64GB by default is the best choice.
       int64 cpu_mem_limit_in_mb = -1;
       Status status = ReadInt64FromEnvVar("TF_CPU_BFC_MEM_LIMIT_IN_MB",
+#ifdef NVIDIA_TEGRA
+                                          1LL << 9 /*512MB max by default*/,
+#else
                                           1LL << 16 /*64GB max by default*/,
+#endif
                                           &cpu_mem_limit_in_mb);
       if (!status.ok()) {
         LOG(ERROR) << "GetCPUAllocator: " << status.error_message();
@@ -231,7 +235,7 @@ Allocator* ProcessState::GetCUDAHostAllocator(int numa_node) {
     // TODO(zheng-xq): evaluate whether 64GB by default is the best choice.
     int64 cuda_host_mem_limit_in_mb = -1;
     Status status = ReadInt64FromEnvVar("TF_CUDA_HOST_MEM_LIMIT_IN_MB",
-                                        1LL << 9 /*64GB max by default*/,
+                                        1LL << 16 /*64GB max by default*/,
                                         &cuda_host_mem_limit_in_mb);
     if (!status.ok()) {
       LOG(ERROR) << "GetCUDAHostAllocator: " << status.error_message();

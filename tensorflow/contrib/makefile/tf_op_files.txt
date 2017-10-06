@@ -161,7 +161,6 @@ tensorflow/core/kernels/control_flow_ops.cc
 tensorflow/core/kernels/constant_op.cc
 tensorflow/core/kernels/concat_op.cc
 tensorflow/core/kernels/concat_lib_cpu.cc
-tensorflow/core/kernels/concat_lib_gpu.cc
 tensorflow/core/kernels/check_numerics_op.cc
 tensorflow/core/kernels/cast_op.cc
 tensorflow/core/kernels/cast_op_impl_bfloat.cc
@@ -233,9 +232,3 @@ tensorflow/core/kernels/spacetobatch_functor.cc
 tensorflow/core/kernels/spacetobatch_op.cc
 tensorflow/core/kernels/batchtospace_op.cc
 tensorflow/core/kernels/warn_about_ints.cc
-tensorflow/core/kernels/pooling_ops_3d.cc
-tensorflow/core/kernels/cudnn_pooling_gpu.cc
-tensorflow/core/kernels/fractional_avg_pool_op.cc
-tensorflow/core/kernels/fractional_pool_common.cc
-tensorflow/core/kernels/fractional_max_pool_op.cc
-tensorflow/core/kernels/sparse_fill_empty_rows_op.cc
