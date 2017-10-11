@@ -45,7 +45,9 @@ cc_library(
         "//tensorflow/compiler/xla:literal_util",
         "//tensorflow/compiler/xla:shape_util",
         "//tensorflow/compiler/xla:types",
+        "//tensorflow/compiler/xla:util",
         "//tensorflow/compiler/xla:xla_data_proto",
+        "//tensorflow/compiler/xla/service:hlo",
         "//tensorflow/core:lib",
         "@llvm//:core",
         "@llvm//:support",
@@ -91,7 +93,6 @@ cc_library(
     deps = [
         ":ir_array",
         ":llvm_loop",
-        ":ops",
         "//tensorflow/compiler/xla:shape_util",
         "//tensorflow/compiler/xla:status_macros",
         "//tensorflow/compiler/xla:statusor",
@@ -110,7 +111,7 @@ cc_library(
         ":ir_array",
         ":llvm_util",
         ":loop_emitter",
-        ":ops",
+        ":tuple_ops",
         "//tensorflow/compiler/xla:status_macros",
         "//tensorflow/compiler/xla:statusor",
         "//tensorflow/compiler/xla:util",
@@ -123,9 +124,9 @@ cc_library(
 )
 
 cc_library(
-    name = "ops",
-    srcs = ["ops.cc"],
-    hdrs = ["ops.h"],
+    name = "tuple_ops",
+    srcs = ["tuple_ops.cc"],
+    hdrs = ["tuple_ops.h"],
     deps = [
         ":ir_array",
         ":llvm_util",

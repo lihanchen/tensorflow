@@ -24,16 +24,16 @@ To try the code for this tutorial:
         # Ubuntu/Linux 64-bit
         $ sudo apt-get install python-pip python-dev
 
-        # Mac OS X
+        # macOS
         $ sudo easy_install pip
         $ sudo easy_install --upgrade six
 
     b. Use `pip` to install pandas:
 
-        $ sudo pip install pandas
+        $ pip install -U pandas
 
     If you have trouble installing pandas, consult the
-    [instructions](http://pandas.pydata.org/pandas-docs/stable/install.html)
+    [instructions](https://pandas.pydata.org/pandas-docs/stable/install.html)
     on the pandas site.
 
 4. Execute the tutorial code with the following command to train the linear
@@ -62,7 +62,7 @@ urllib.urlretrieve("https://archive.ics.uci.edu/ml/machine-learning-databases/ad
 ```
 
 Once the CSV files are downloaded, let's read them into
-[Pandas](http://pandas.pydata.org/) dataframes.
+[Pandas](https://pandas.pydata.org/) dataframes.
 
 ```python
 import pandas as pd
@@ -127,7 +127,7 @@ Here's a list of columns available in the Census Income dataset:
 :                :             : individual.                       :
 | income         | Categorical | ">50K" or "<=50K", meaning        |
 :                :             : whether the person makes more     :
-:                :             : than \$50,000 annually.           :
+:                :             : than $50,000 annually.           :
 
 ## Converting Data into Tensors
 
@@ -426,8 +426,7 @@ m = tf.estimator.LinearClassifier(
     optimizer=tf.train.FtrlOptimizer(
       learning_rate=0.1,
       l1_regularization_strength=1.0,
-      l2_regularization_strength=1.0),
-    model_dir=model_dir)
+      l2_regularization_strength=1.0))
 ```
 
 One important difference between L1 and L2 regularization is that L1

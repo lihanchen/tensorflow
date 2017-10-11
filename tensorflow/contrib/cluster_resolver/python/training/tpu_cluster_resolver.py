@@ -24,6 +24,7 @@ from tensorflow.python.training.server_lib import ClusterSpec
 _GOOGLE_API_CLIENT_INSTALLED = True
 try:
   from googleapiclient import discovery  # pylint: disable=g-import-not-at-top
+  from oauth2client.client import GoogleCredentials  # pylint: disable=g-import-not-at-top
 except ImportError:
   _GOOGLE_API_CLIENT_INSTALLED = False
 
@@ -38,12 +39,11 @@ class TPUClusterResolver(ClusterResolver):
   """
 
   def __init__(self,
-               api_definition,
                project,
                zone,
                tpu_names,
-               credentials,
                job_name='tpu_worker',
+               credentials='default',
                service=None):
     """Creates a new TPUClusterResolver object.
 
@@ -51,13 +51,12 @@ class TPUClusterResolver(ClusterResolver):
     for the IP addresses and ports of each Cloud TPU listed.
 
     Args:
-      api_definition: (Alpha only) A copy of the JSON API definitions for
-        Cloud TPUs. This will be removed once Cloud TPU enters beta.
       project: Name of the GCP project containing Cloud TPUs
       zone: Zone where the TPUs are located
       tpu_names: A list of names of the target Cloud TPUs.
-      credentials: GCE Credentials.
       job_name: Name of the TensorFlow job the TPUs belong to.
+      credentials: GCE Credentials. If None, then we use default credentials
+        from the oauth2client
       service: The GCE API object returned by the googleapiclient.discovery
         function. If you specify a custom service object, then the credentials
         parameter will be ignored.
@@ -70,15 +69,24 @@ class TPUClusterResolver(ClusterResolver):
     self._zone = zone
     self._tpu_names = tpu_names
     self._job_name = job_name
+    self._credentials = credentials
+
+    if credentials == 'default':
+      if _GOOGLE_API_CLIENT_INSTALLED:
+        self._credentials = GoogleCredentials.get_application_default()
+
     if service is None:
       if not _GOOGLE_API_CLIENT_INSTALLED:
         raise ImportError('googleapiclient must be installed before using the '
                           'TPU cluster resolver')
 
-      # TODO(frankchn): Remove once Cloud TPU API Definitions are public and
-      # replace with discovery.build('tpu', 'v1')
-      self._service = discovery.build_from_document(api_definition,
-                                                    credentials=credentials)
+      # TODO(b/67375680): Remove custom URL once TPU APIs are finalized
+      self._service = discovery.build(
+          'tpu',
+          'v1',
+          credentials=self._credentials,
+          discoveryServiceUrl='https://storage.googleapis.com'
+                              '/tpu-api-definition/v1alpha1.json')
     else:
       self._service = service
 
@@ -99,7 +107,7 @@ class TPUClusterResolver(ClusterResolver):
       request = self._service.projects().locations().nodes().get(name=full_name)
       response = request.execute()
 
-      instance_url = '%s:%s' % (response.ipAddress, response.port)
+      instance_url = '%s:%s' % (response['ipAddress'], response['port'])
       worker_list.append(instance_url)
 
     return ClusterSpec({self._job_name: worker_list})

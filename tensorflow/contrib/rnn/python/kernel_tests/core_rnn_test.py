@@ -42,7 +42,6 @@ from tensorflow.python.ops import variables as variables_lib
 from tensorflow.python.platform import test
 from tensorflow.python.platform import tf_logging
 from tensorflow.python.util import nest
-from tensorflow.python.framework import test_util
 
 class Plus1RNNCell(rnn_lib.RNNCell):
   """RNN Cell generating (output, new_state) = (input + 1, state + 1)."""
@@ -2204,17 +2203,25 @@ class TensorArrayOnCorrectDeviceTest(test.TestCase):
 
     return run_metadata
 
+  def _retrieve_cpu_gpu_stats(self, run_metadata):
+    cpu_stats = None
+    gpu_stats = None
+    step_stats = run_metadata.step_stats
+    for ds in step_stats.dev_stats:
+      if "cpu:0" in ds.device[-5:].lower():
+        cpu_stats = ds.node_stats
+      if "gpu:0" == ds.device[-5:].lower():
+        gpu_stats = ds.node_stats
+    return cpu_stats, gpu_stats
+
   def testRNNOnCPUCellOnGPU(self):
     if not test.is_gpu_available():
       return  # Test requires access to a GPU
 
+    gpu_dev = test.gpu_device_name()
     run_metadata = self._execute_rnn_on(
-        rnn_device="/cpu:0", cell_device=test_util.gpu_device_name())
-    step_stats = run_metadata.step_stats
-    ix = 0 if (("gpu" in step_stats.dev_stats[0].device) or
-    ("sycl" in step_stats.dev_stats[0].device)) else 1
-    gpu_stats = step_stats.dev_stats[ix].node_stats
-    cpu_stats = step_stats.dev_stats[1 - ix].node_stats
+        rnn_device="/cpu:0", cell_device=gpu_dev)
+    cpu_stats, gpu_stats = self._retrieve_cpu_gpu_stats(run_metadata)
 
     def _assert_in(op_str, in_stats, out_stats):
       self.assertTrue(any(op_str in s.node_name for s in in_stats))
@@ -2233,14 +2240,11 @@ class TensorArrayOnCorrectDeviceTest(test.TestCase):
     if not test.is_gpu_available():
       return  # Test requires access to a GPU
 
+    gpu_dev = test.gpu_device_name()
     run_metadata = self._execute_rnn_on(
         rnn_device="/cpu:0", cell_device="/cpu:0",
-        input_device=test_util.gpu_device_name())
-    step_stats = run_metadata.step_stats
-    ix = 0 if (("gpu" in step_stats.dev_stats[0].device) or
-    ("sycl" in step_stats.dev_stats[0].device)) else 1
-    gpu_stats = step_stats.dev_stats[ix].node_stats
-    cpu_stats = step_stats.dev_stats[1 - ix].node_stats
+        input_device=gpu_dev)
+    cpu_stats, gpu_stats = self._retrieve_cpu_gpu_stats(run_metadata)
 
     def _assert_in(op_str, in_stats, out_stats):
       self.assertTrue(any(op_str in s.node_name for s in in_stats))
@@ -2253,13 +2257,10 @@ class TensorArrayOnCorrectDeviceTest(test.TestCase):
     if not test.is_gpu_available():
       return  # Test requires access to a GPU
 
+    gpu_dev = test.gpu_device_name()
     run_metadata = self._execute_rnn_on(
-        input_device=test_util.gpu_device_name())
-    step_stats = run_metadata.step_stats
-    ix = 0 if (("gpu" in step_stats.dev_stats[0].device) or
-    ("sycl" in step_stats.dev_stats[0].device)) else 1
-    gpu_stats = step_stats.dev_stats[ix].node_stats
-    cpu_stats = step_stats.dev_stats[1 - ix].node_stats
+        input_device=gpu_dev)
+    cpu_stats, gpu_stats = self._retrieve_cpu_gpu_stats(run_metadata)
 
     def _assert_in(op_str, in_stats, out_stats):
       self.assertTrue(any(op_str in s.node_name for s in in_stats))

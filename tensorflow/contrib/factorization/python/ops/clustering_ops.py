@@ -51,6 +51,9 @@ COSINE_DISTANCE = 'cosine'
 RANDOM_INIT = 'random'
 KMEANS_PLUS_PLUS_INIT = 'kmeans_plus_plus'
 
+# The name of the variable holding the cluster centers. Used by the Estimator.
+CLUSTERS_VAR_NAME = 'clusters'
+
 
 class KMeans(object):
   """Creates the graph for k-means clustering."""
@@ -176,7 +179,7 @@ class KMeans(object):
     """
     output = []
     for inp in inputs:
-      with ops.colocate_with(inp):
+      with ops.colocate_with(inp, ignore_existing=True):
         # Computes Euclidean distance. Note the first and third terms are
         # broadcast additions.
         squared_distance = (
@@ -206,10 +209,10 @@ class KMeans(object):
     """
     output = []
     if not inputs_normalized:
-      with ops.colocate_with(clusters):
+      with ops.colocate_with(clusters, ignore_existing=True):
         clusters = nn_impl.l2_normalize(clusters, dim=1)
     for inp in inputs:
-      with ops.colocate_with(inp):
+      with ops.colocate_with(inp, ignore_existing=True):
         if not inputs_normalized:
           inp = nn_impl.l2_normalize(inp, dim=1)
         output.append(1 - math_ops.matmul(inp, clusters, transpose_b=True))
@@ -241,10 +244,10 @@ class KMeans(object):
       # nearest_neighbors op.
       # TODO(ands): Support COSINE distance in nearest_neighbors and remove
       # this.
-      with ops.colocate_with(clusters):
+      with ops.colocate_with(clusters, ignore_existing=True):
         clusters = nn_impl.l2_normalize(clusters, dim=1)
     for inp, score in zip(inputs, scores):
-      with ops.colocate_with(inp):
+      with ops.colocate_with(inp, ignore_existing=True):
         (indices, distances) = gen_clustering_ops.nearest_neighbors(
             inp, clusters, 1)
         if self._distance_metric == COSINE_DISTANCE:
@@ -279,7 +282,7 @@ class KMeans(object):
     """
     init_value = array_ops.constant([], dtype=dtypes.float32)
     cluster_centers = variable_scope.variable(
-        init_value, name='clusters', validate_shape=False)
+        init_value, name=CLUSTERS_VAR_NAME, validate_shape=False)
     cluster_centers_initialized = variable_scope.variable(
         False, dtype=dtypes.bool, name='initialized')
 
@@ -310,7 +313,7 @@ class KMeans(object):
     """Normalized the input data."""
     output = []
     for inp in inputs:
-      with ops.colocate_with(inp):
+      with ops.colocate_with(inp, ignore_existing=True):
         output.append(nn_impl.l2_normalize(inp, dim=1))
     return output
 
@@ -386,7 +389,7 @@ class KMeans(object):
                                   cluster_centers_updated, total_counts):
     if self._use_mini_batch and self._mini_batch_steps_per_iteration > 1:
       assert update_in_steps is not None
-      with ops.colocate_with(update_in_steps):
+      with ops.colocate_with(update_in_steps, ignore_existing=True):
 
         def _f():
           # Note that there is a race condition here, so we do a best effort
@@ -406,11 +409,10 @@ class KMeans(object):
                     cluster_centers_updated, dim=1)
               else:
                 cluster_centers = cluster_centers_updated
-            with ops.colocate_with(cluster_centers_var):
+            with ops.colocate_with(cluster_centers_var, ignore_existing=True):
               with ops.control_dependencies(
                   [state_ops.assign(cluster_centers_var, cluster_centers)]):
-                with ops.colocate_with(
-                    cluster_centers_var, ignore_existing=True):
+                with ops.colocate_with(None, ignore_existing=True):
                   with ops.control_dependencies([
                       state_ops.assign(total_counts,
                                        array_ops.zeros_like(total_counts))
@@ -440,7 +442,7 @@ class KMeans(object):
     """
     update_ops = []
     for inp, cluster_idx in zip(inputs, cluster_idx_list):
-      with ops.colocate_with(inp):
+      with ops.colocate_with(inp, ignore_existing=True):
         assert total_counts is not None
         cluster_idx = array_ops.reshape(cluster_idx, [-1])
         # Dedupe the unique ids of cluster_centers being updated so that updates
@@ -644,13 +646,12 @@ class _InitializeClustersOpFactory(object):
         math_ops.equal(self._num_selected, 0), lambda: new_centers,
         lambda: array_ops.concat([self._cluster_centers, new_centers], 0))
     # TODO(ccolby): De-dupe all_centers?
-    with ops.colocate_with(self._cluster_centers):
+    a = state_ops.assign(
+        self._cluster_centers, all_centers, validate_shape=False)
+    if self._cluster_centers_updated is not self._cluster_centers:
       a = state_ops.assign(
-          self._cluster_centers, all_centers, validate_shape=False)
-      if self._cluster_centers_updated is not self._cluster_centers:
-        a = state_ops.assign(
-            self._cluster_centers_updated, a, validate_shape=False)
-      return self._num_clusters - array_ops.shape(a)[0]
+          self._cluster_centers_updated, a, validate_shape=False)
+    return self._num_clusters - array_ops.shape(a)[0]
 
   def _initialize(self):
     with ops.control_dependencies([

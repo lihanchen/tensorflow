@@ -42,6 +42,7 @@ tf_custom_op_py_library(
     srcs_version = "PY2AND3",
     visibility = ["//visibility:public"],
     deps = [
+        ":benchmarking",
         ":gru_ops",
         ":lstm_ops",
         "//tensorflow/contrib/compiler:compiler_py",
@@ -84,10 +85,6 @@ cuda_py_tests(
         "//tensorflow/python:random_ops",
         "//tensorflow/python:variable_scope",
         "//tensorflow/python:variables",
-    ],
-    tags = [
-        "noasan",  # times out b/63678675
-        "notsan",  # http://b/62135981
     ],
     xla_enabled = True,
 )
@@ -369,6 +366,7 @@ py_binary(
         "//tensorflow/python:framework_ops",
         "//tensorflow/python:platform",
         "//tensorflow/python:pywrap_tensorflow",
+        "//tensorflow/python:session",
         "//tensorflow/python:training",
         "//tensorflow/python:variables",
     ],
@@ -382,10 +380,20 @@ py_test(
     tags = ["no_pip"],
     deps = [
         ":checkpoint_convert",
-        "//tensorflow/python:client",
         "//tensorflow/python:client_testlib",
         "//tensorflow/python:framework_ops",
+        "//tensorflow/python:session",
         "//tensorflow/python:training",
         "//tensorflow/python:variables",
+    ],
+)
+
+py_library(
+    name = "benchmarking",
+    srcs = ["python/kernel_tests/benchmarking.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tensorflow/python:framework_ops",
+        "//third_party/py/numpy",
     ],
 )
