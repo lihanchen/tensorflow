@@ -45,8 +45,9 @@ std::complex<double> exp(const std::complex<double> &x) {
 #endif
 }
 
-namespace internal {
 
+namespace internal {
+  
 template <typename T>
 struct scalar_asinh_op {
   EIGEN_EMPTY_STRUCT_CTOR(scalar_asinh_op)
