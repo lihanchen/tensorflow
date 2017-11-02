@@ -57,8 +57,8 @@ if [ "$ARCH" == "Tegra" ] && [[ -z "${JETPACK}" ]]; then
         echo "Set JETPACK=<path to Jetpack Android> to specify a non-default Jetpack path"
         exit -1
     fi
-    
-    BUILD_FOR_TEGRA=1
+
+    export BUILD_FOR_TEGRA=1
     ARCH="arm64-v8a"
 fi
 
@@ -110,10 +110,6 @@ fi
 
 if [[ "${ENABLE_EXPERIMENTAL_HEXNN_OPS}" == "true" ]]; then
     EXTRA_MAKE_ARGS+=("ENABLE_EXPERIMENTAL_HEXNN_OPS=true")
-fi
-
-if [ "$BUILD_FOR_TEGRA" == 1 ]; then
-    export BUILD_FOR_TEGRA=1
 fi
 
 if [[ -z "${BUILD_TARGET}" ]]; then
