@@ -26,7 +26,7 @@ usage() {
   echo "-x [hexagon library path] copy and hexagon libraries in the specified path"
   echo "-a [architecture] Architecture of target android [default=armeabi-v7a] \
 (supported architecture list: \
-arm64-v8a armeabi armeabi-v7a mips mips64 x86 x86_64 Tegra)"
+arm64-v8a armeabi armeabi-v7a mips mips64 x86 x86_64 tegra)"
   exit 1
 }
 
@@ -50,7 +50,7 @@ while getopts "Es:t:Tx:a:" opt_name; do
 done
 shift $((OPTIND - 1))
 
-if [ "$ARCH" == "Tegra" ] && [[ -z "${JETPACK}" ]]; then
+if [ "$ARCH" == "tegra" ] && [[ -z "${JETPACK}" ]]; then
     export JETPACK="$HOME/JetPack_Android_3.0"
     if [ ! -d ${JETPACK} ]; then
         echo "Can't find Jetpack at ${JETPACK}"
