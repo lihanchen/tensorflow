@@ -396,13 +396,14 @@ $(MARCH_OPTION) \
 
 		INCLUDES += \
 -Itensorflow/core/kernels \
+-I$(MAKEFILE_DIR)/downloads/cub \
+-I$(MAKEFILE_DIR)/downloads/cub/cub_archive/cub/device \
+-Ithird_party/toolchains/gpus/cuda \
 -I$(JETPACK)/cuda-8.0/include \
 -I$(JETPACK) \
 -I$(JETPACK)/cuDNN/aarch64 \
--I$(JETPACK)/cuda-8.0/extras/CUPTI/include \
--I. \
--Itegra \
--Itegra/external/cub_archive/cub/device
+-I$(JETPACK)/cuda-8.0/extras/CUPTI/include
+
 
 		LIBS += \
 -ltfcuda \
@@ -757,6 +758,18 @@ $(BENCHMARK_NAME): $(BENCHMARK_OBJS) $(LIB_PATH) $(CUDA_LIB_DEPS)
 	-o $(BENCHMARK_NAME) $(BENCHMARK_OBJS) \
 	$(LIBFLAGS) $(TEGRA_LIBS) $(LIB_PATH) $(LDFLAGS) $(LIBS)
 
+# NVCC compilation rules for Tegra
+ifeq ($(BUILD_FOR_TEGRA),1)
+$(OBJDIR)%.cu.o: %.cu.cc
+	@mkdir -p $(dir $@)
+	@mkdir -p $(dir $(DEPDIR)$*)
+	$(NVCC) $(NVCCFLAGS) -Xcompiler "$(CXXFLAGS4NVCC) $(DEPFLAGS)" $(INCLUDES) -c $< -o $@
+
+$(LIBDIR)libtfcuda.a: $(CUDA_CC_OBJS)
+	@mkdir -p $(dir $@)
+	$(AR) $(ARFLAGS) $@ $(CUDA_CC_OBJS)
+endif
+
 # Matches on the normal hand-written TensorFlow C++ source files.
 $(OBJDIR)%.o: %.cc | $(PBT_GEN_FILES)
 	@mkdir -p $(dir $@)
@@ -801,19 +814,6 @@ $(OBJDIR)%.pb_text.o: $(PBTGENDIR)%.pb_text.cc
 $(PROTO_OBJS): $(PROTO_CC_SRCS) $(PBT_GEN_FILES)
 
 # Host compilation rules.
-
-# NVCC compilation rules for Tegra
-ifeq ($(BUILD_FOR_TEGRA),1)
-$(OBJDIR)%.cu.o: %.cu.cc
-	@mkdir -p $(dir $@)
-	@mkdir -p $(dir $(DEPDIR)$*)
-	$(NVCC) $(NVCCFLAGS) -Xcompiler "$(CXXFLAGS4NVCC) $(DEPFLAGS)" $(INCLUDES) -c $< -o $@
-
-$(LIBDIR)libtfcuda.a: $(CUDA_CC_OBJS)
-	@mkdir -p $(dir $@)
-	$(AR) $(ARFLAGS) $@ $(CUDA_CC_OBJS)
-endif
-
 # For normal manually-created TensorFlow C++ source files.
 $(HOST_OBJDIR)%.o: %.cc
 	@mkdir -p $(dir $@)
@@ -856,6 +856,7 @@ clean_except_protobuf_libs:
 cleantarget:
 	rm -rf $(OBJDIR)
 	rm -rf $(BINDIR)
+	rm -rf $(LIBDIR)
 
 $(DEPDIR)/%.d: ;
 .PRECIOUS: $(DEPDIR)/%.d
