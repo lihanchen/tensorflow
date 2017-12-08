@@ -56,6 +56,10 @@ if [ "$ARCH" == "tegra" ] && [[ -z "${JETPACK}" ]]; then
         echo "Can't find Jetpack at ${JETPACK}"
         echo "Set JETPACK=<path to Jetpack Android> to specify a non-default Jetpack path"
         exit -1
+    else
+        if [ ! -d ${JETPACK}/cuda ]; then
+            ln -s $(ls -d ${JETPACK}/cuda-*/|sort -r|head -n1) ${JETPACK}/cuda
+        fi
     fi
 
     export BUILD_FOR_TEGRA=1
