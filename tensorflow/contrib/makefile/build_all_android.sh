@@ -50,16 +50,17 @@ while getopts "Es:t:Tx:a:" opt_name; do
 done
 shift $((OPTIND - 1))
 
-if [ "$ARCH" == "tegra" ] && [[ -z "${JETPACK}" ]]; then
-    export JETPACK="$HOME/JetPack_Android_3.0"
+if [ "$ARCH" == "tegra" ]; then
+    if [[ -z "${JETPACK}" ]]; then
+        export JETPACK="$HOME/JetPack_Android_3.0"
+    fi
     if [ ! -d ${JETPACK} ]; then
         echo "Can't find Jetpack at ${JETPACK}"
         echo "Set JETPACK=<path to Jetpack Android> to specify a non-default Jetpack path"
         exit -1
-    else
-        if [ ! -d ${JETPACK}/cuda ]; then
-            ln -s $(ls -d ${JETPACK}/cuda-*/|sort -r|head -n1) ${JETPACK}/cuda
-        fi
+    fi
+    if [ ! -d ${JETPACK}/cuda ]; then
+        ln -s $(ls -d ${JETPACK}/cuda-*/|sort -r|head -n1) ${JETPACK}/cuda
     fi
 
     export BUILD_FOR_TEGRA=1
