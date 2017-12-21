@@ -385,10 +385,12 @@ $(MARCH_OPTION) \
 -DNDEBUG $(OPTFLAGS) \
 -march=armv8-a \
 -fPIE \
+-D__ANDROID_TYPES_FULL__ \
 --sysroot $(NDK_ROOT)/platforms/android-21/arch-arm64
 
 		CXXFLAGS +=\
 -DGOOGLE_CUDA=1 \
+-D__ANDROID_TYPES_FULL__ \
 -DNVIDIA_TEGRA \
 -DEIGEN_AVOID_STL_ARRAY \
 -DEIGEN_HAS_C99_MATH \
